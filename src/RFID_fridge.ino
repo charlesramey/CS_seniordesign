@@ -50,6 +50,21 @@ void setup()
   {
     Serial.println("Users file was not able to be opened");
   }
+  String file_in = ""
+  char *tmp;
+  int i = 0;
+  if(users_file)
+  {
+    while(users_file.available())
+    {
+      file_in.concat(users_file.read())
+    }
+  }
+  // tmp = strtok(file_in, ",");
+  // while(tmp)
+  // {
+  //   ArrayKey[i++] = atoi()
+  // }
 }
 
 void loop()
