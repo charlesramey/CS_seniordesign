@@ -78,13 +78,13 @@ void loop()
 {
   lcd.setCursor(0,0);
   lcd.print("Testing");
-  if(prox.available()==true)
+  if(reader.available()==true)
   {
     Serial.print(" Facility Code = ");
-    Serial.print(prox.getFacilityCode(),DEC);
+    Serial.print(reader.getFacilityCode(),DEC);
     Serial.print(", Card Code = ");
-    Serial.println(prox.getCardCode(),DEC);
-    prox.reset();
+    Serial.println(reader.getCardCode(),DEC);
+    reader.reset();
   }
 }
 
