@@ -86,6 +86,9 @@ void loop()
     Serial.print(reader.getFacilityCode(),DEC);
     Serial.print(", Card Code = ");
     Serial.println(reader.getCardCode(),DEC);
+    //print to lcd display on second line 
+    lcd.setCursor(0,1);
+    lcd.print(reader.getCardCode(), DEC);
     reader.reset();
   }
 }
