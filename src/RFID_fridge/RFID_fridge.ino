@@ -40,6 +40,7 @@ void setup()
   //Inorder to make the SD card library work, pin 10 must be set as an
   //output, even though we are using pin 8 as the chip select (CS)
   pinMode(10, OUTPUT);
+  digitalWrite(10,HIGH); // For the backlight to stay on! 
   //Set the chip_select pin to output fo SD reader
   pinMode(chip_select, OUTPUT);
 
@@ -76,6 +77,7 @@ void setup()
 
 void loop()
 {
+  
   lcd.setCursor(0,0);
   lcd.print("Testing");
   if(reader.available()==true)
