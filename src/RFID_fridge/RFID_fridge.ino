@@ -5,11 +5,11 @@
 #include <string.h>
 
 /* SD Card Hook Up Guide
- *  MOSI -> Pin 11
- *  MISO -> Pin 12
- *  CLK -> Pin 13
- *  CS -> 8
- */
+    MOSI -> Pin 11
+    MISO -> Pin 12
+    CLK -> Pin 13
+    CS -> 8
+*/
 
 //Requisite SD card variables
 Sd2Card card;
@@ -27,9 +27,11 @@ const int chip_select = 8;
 const int clock_pin = 3;
 const int data_pin = 2;
 
-//Card ID 
+//Card ID
 long Card_ID; //type long for long int
+int userCredits; // number of credits active user has
 int dispense = 1; // value of one soda
+int nextPointer; // if dispense, location of pointer
 
 //Create RFID reader object
 Wiegand reader;
@@ -50,17 +52,17 @@ int adc_key_in  = 0;
 // read the buttons
 int read_LCD_buttons()
 {
- adc_key_in = analogRead(0);      // read the value from the sensor 
- // my buttons when read are centered at these valies: 0, 144, 329, 504, 741
- // we add approx 50 to those values and check to see if we are close
- if (adc_key_in > 1000) return btnNONE; // We make this the 1st option for speed reasons since it will be the most likely result
- // For V1.1 us this threshold
- if (adc_key_in < 50)   return btnRIGHT;  
- if (adc_key_in < 250)  return btnUP; 
- if (adc_key_in < 450)  return btnDOWN; 
- if (adc_key_in < 650)  return btnLEFT; 
- if (adc_key_in < 850)  return btnSELECT;  
- return btnNONE;  // when all others fail, return this...
+  adc_key_in = analogRead(0);      // read the value from the sensor
+  // my buttons when read are centered at these valies: 0, 144, 329, 504, 741
+  // we add approx 50 to those values and check to see if we are close
+  if (adc_key_in > 1000) return btnNONE; // We make this the 1st option for speed reasons since it will be the most likely result
+  // For V1.1 us this threshold
+  if (adc_key_in < 50)   return btnRIGHT;
+  if (adc_key_in < 250)  return btnUP;
+  if (adc_key_in < 450)  return btnDOWN;
+  if (adc_key_in < 650)  return btnLEFT;
+  if (adc_key_in < 850)  return btnSELECT;
+  return btnNONE;  // when all others fail, return this...
 }
 
 void setup()
@@ -69,16 +71,16 @@ void setup()
   reader.begin();
   // Attach the 0-bit Wiegand signal to Arduino's Interrupt 0 (Pin 2 for UNO)
   // Attach the 1-bit Wiegand signal to Arduino's Interrupt 1 (Pin 3 for UNO)
-  reader.attach(0,1);
+  reader.attach(0, 1);
   //Inorder to make the SD card library work, pin 10 must be set as an
   //output, even though we are using pin 8 as the chip select (CS)
   pinMode(10, OUTPUT);
-  digitalWrite(10,HIGH); // For the backlight to stay on! 
+  digitalWrite(10, HIGH); // For the backlight to stay on!
   //Set the chip_select pin to output fo SD reader
   pinMode(chip_select, OUTPUT);
 
   //Try to initialize the SD Card
-  if(!SD.begin(chip_select))
+  if (!SD.begin(chip_select))
   {
     Serial.println("SD Card Initialization Failed");
     return;
@@ -88,301 +90,217 @@ void setup()
   // now lines will be parsed and placed into arrays
 
   lcd.begin(16, 2);
-  lcd.setCursor(0,0);
+  lcd.setCursor(0, 0);
   lcd.print("Testing");
 }
 
 
-boolean readback = true; // if to read the csv again and update local array 
+boolean readback = true; // if to read the csv again and update local array
 boolean found = false; // if card ID is found
 boolean scanned = false; // if a card has been scanned just then
 boolean active = false; // if user has scanned card and may do something
-boolean transaction = false; //if a transaction is occuring (decrement) 
-boolean pay = false; // if user selects can to be dispensed 
+boolean transaction = false; //if a transaction is occuring (decrement)
+boolean pay = false; // if user selects can to be dispensed
 boolean onetime = true;
 boolean anothertime = true;
 
 void loop()
-{ 
-  
-  if(reader.available()==true)
+{
+
+  if (reader.available() == true)
   {
+    lcd.setCursor(0, 0);
+    lcd.print("                "); // clear lcd
+    lcd.setCursor(0, 1);
+    lcd.print("                ");
     active = true;
     scanned = true;
+    dispense = 1;
     Card_ID = reader.getCardCode();
     Serial.print(" Facility Code = ");
-    Serial.print(reader.getFacilityCode(),DEC);
+    Serial.print(reader.getFacilityCode(), DEC);
     Serial.print(", Card Code = ");
-    Serial.println(Card_ID,DEC);
+    Serial.println(Card_ID, DEC);
 
-    lcd.setCursor(0,1);
-    lcd.print(getCredits(Card_ID));
+    lcd.setCursor(0, 1);
+    int IDpointer = findID(Card_ID);
+    if (IDpointer > 0 ){
+      printCredits(IDpointer);
+    }
+    else {
+      Serial.println("NO USER");
+      }
+    //    Serial.println(nextPointer);
+    //    lcd.print(getCredits(Card_ID));
 
     reader.reset();
-   }
-
-   
-
-
-    while (active){
+  }
 
 
 
-        lcd_key = read_LCD_buttons(); // read buttons 
-        lcd.setCursor(0,1);  
-        switch (lcd_key)               // depending on which button was pushed, we perform an action
+
+  while (active) {
+    lcd_key = read_LCD_buttons(); // read buttons
+    lcd.setCursor(0, 1);
+    switch (lcd_key)               // depending on which button was pushed, we perform an action
+    {
+      case btnRIGHT:
         {
-          case btnRIGHT:
-            {
-            lcd.print("RIGHT ");
+          lcd.print("RIGHT ");
 
-            break;
-            }
-          case btnLEFT:
-            {
-            lcd.print("LEFT   ");
-            break;
-            }
-          case btnUP:
-            {
-            lcd.print("UP    ");
-            break;
-            }
-          case btnDOWN:
-            {
+          break;
+        }
+      case btnLEFT:
+        {
+          lcd.print("LEFT   ");
+          break;
+        }
+      case btnUP:
+        {
+          lcd.print("UP    ");
+          break;
+        }
+      case btnDOWN:
+        {
 
-      //      lcd.print("DOWN  ");
-            while (dispense > 0){ //because button press results in many calls 
-              pay = true;
+          //      lcd.print("DOWN  ");
+          while (dispense > 0) { //because button press results in many calls
+            if (userCredits == 0){
+              Serial.println("NO CREDITS");
+              lcd.print("NO CREDITS");
               dispense--;
-              Serial.println("DOWN");    
-              Serial.println(lowerCredits(Card_ID));
+              active = false;  
+              break;
               }
-//              transaction = false;
-            break;
-            }
-          case btnSELECT:
-            {
-            lcd.print("SELECT");
-            break;
-            }
-            case btnNONE:
-            {
-      //      lcd.print("NONE  ");
-              
-
-              
-            break;
-            }
+            pay = true;
+            Serial.println("DOWN");
+            lowerCredits(nextPointer);  
+            dispense--;
+            active=false;
           }
-
-
-       
-  
-  
-  
-  
-    }
-
-
-      
-    }
-
-    int getCredits (long Card_ID){
-
-        Serial.println(Card_ID);
-        users_file = SD.open("Users.csv"); // OPEN FILE
-        if(!users_file)
-        {
-          Serial.println("Users file was not able to be opened");
+          //              transaction = false;
+          break;
         }
-        int n = 0; // to put in all chars into char array
-        char data[users_file.size()];
-        while (users_file.available()) //file read
+      case btnSELECT:
         {
-          data[n] = users_file.read(); //all chars are inside char array
-          n++;
-         }
-         users_file.close(); // CLOSE FILE  
-         scanned = false;
-         Serial.println("DASDAFHSFHDFJFGNSDJFSD");
-      
-      int a = 1; // to track which array to place items
-      int b = -1; //to keep count iterating
-      char *p = data;
-      char *line; // going through line by line
-      char *entity;
-      if(onetime){
-        Serial.println(data);
-        onetime=false;
-        } 
-      while (( line = strtok_r(p,"\n",&p)) != NULL){ // loop skips first row of headers
-        while (( entity = strtok_r(NULL,",",&p)) != NULL){
-          if (anothertime){
-//            Serial.println(p);
-            anothertime= false;
-            }
-//            Serial.println(entity);
-          if ( a == 5 ){
-           a = 1;
-            }
-          if ( a == 1 ){
-             if (Card_ID == ((String)entity).toInt()){
-                lastCardID = Card_ID;
-                Serial.println("SUCCESSSSSSSS");
-                found = true;
-              }
-           }
-          if ( a == 2 && found){
-              lcd.setCursor(0,0);
-              lcd.print((String)entity + " ");
-            }
-          if ( a == 3 && found){
-              lcd.setCursor(0,1);
-//              lcd.print((String)entity);
-//              Serial.print("7 conditional: ");
-//              Serial.println((String)entity);
-              return ((String)entity).toInt();
-//              if (pay){
-////                strncpy(entity,(char*)(((String)entity).toInt() - 1),2);
-//                Serial.println((((String)entity).toInt() - 1));
-////                entity = (char*)(((String)entity).toInt() - 1);
-//                lcd.setCursor(0,1);
-//                lcd.print((String)p);
-////                Serial.println((String)entity);
-//                pay = false;
-//                }
-//            credits[b] = ((String)entity).toInt();
-            }   
-          if ( a == 4 ){
-//            admins[b] = ((String)entity).toInt();
-            }     
-          a++;
-          }
-          b++;
-          if (!found){
-            return -1;
-            }
-          
-          found = false;
-          }
-      
-      
-      }
-
-
-
-       int lowerCredits (long Card_ID){
-
-        Serial.println(Card_ID);
-        users_file = SD.open("Users.csv"); // OPEN FILE
-        if(!users_file)
-        {
-          Serial.println("Users file was not able to be opened");
+          lcd.print("SELECT");
+          break;
         }
-        int n = 0; // to put in all chars into char array
-        char data[users_file.size()];
-        while (users_file.available()) //file read
+      case btnNONE:
         {
-          data[n] = users_file.read(); //all chars are inside char array
-          n++;
-         }
-         users_file.close(); // CLOSE FILE  
-         scanned = false;
-         Serial.println("DASDAFHSFHDFJFGNSDJFSD");
-      
-      int a = 1; // to track which array to place items
-      int b = -1; //to keep count iterating
-      char *p = data;
-      char *line; // going through line by line
-      char *entity;
-      if(onetime){
-        Serial.println(data);
-        onetime=false;
-        } 
-      while (( line = strtok_r(p,"\n",&p)) != NULL){ // loop skips first row of headers
-        while (( entity = strtok_r(NULL,",",&p)) != NULL){
-          if (anothertime){
-//            Serial.println(p);
-            anothertime= false;
-            }
-//            Serial.println(entity);
-          if ( a == 5 ){
-           a = 1;
-            }
-          if ( a == 1 ){ //card IDs
-             if (Card_ID == ((String)entity).toInt()){
-                lastCardID = Card_ID;
-                Serial.println("SUCCESSSSSSSS");
-                found = true;
-              }
-           }
-          if ( a == 2 && found){ //user name
-              lcd.setCursor(0,0);
-              lcd.print((String)entity + " ");
-            }
-          if ( a == 3 && found){ //credits
-              lcd.setCursor(0,1);
-//              lcd.print((String)entity);
-//              Serial.print("7 conditional: ");
-//              Serial.println((String)entity);
-                Serial.print("Enter: ");
-                Serial.println(entity);
-                Serial.println(  ((int)(((String)entity).toInt()) ) - 1 );
-                entity = (char*)(((int)(((String)entity).toInt()) ) - 1 );            
-                Serial.println(entity);
-                  
-              
-//                users_file = SD.open("Users.csv", FILE_WRITE); // OPEN FILE as write
-//                if(!users_file)
-//                {
-//                  Serial.println("Users file was not able to be opened in decrement");
-//                }
-//                int n = 0; // to put in all chars into char array
-////                char data[users_file.size()];
-////                while (users_file.available()) //file read
-////                {
-////                data[n] = users_file.read(); //all chars are inside char array
-////                n++;
-////                }
-//                
-//
-//                users_file.close(); // CLOSE FILE 
+          //      lcd.print("NONE  ");
+          break;
+        }
+    }
+  }
+}
 
-
-                
-
-
-                
-              return ((String)entity).toInt();
-//              if (pay){
-////                strncpy(entity,(char*)(((String)entity).toInt() - 1),2);
-//                Serial.println((((String)entity).toInt() - 1));
-////                entity = (char*)(((String)entity).toInt() - 1);
-//                lcd.setCursor(0,1);
-//                lcd.print((String)p);
-////                Serial.println((String)entity);
-//                pay = false;
-//                }
-//            credits[b] = ((String)entity).toInt();
-            }   
-          if ( a == 4 ){ //admin
-//            admins[b] = ((String)entity).toInt();
-            }     
-          a++;
-          }
-          b++;
-          if (!found){
-            return -1;
-            }
-          
-          found = false;
-          }
-      
-      
+int findID (long Card_ID) {
+  String credits;
+  users_file = SD.open("Users.csv"); // OPEN FILE
+  if (!users_file)
+  {
+    Serial.println("Users file was not able to be opened");
+  }
+  int n = 0; // to put in all chars into char array
+  //        char data[users_file.size()];
+  char c;
+  while (users_file.available()) //file read
+  {
+    c = users_file.read();
+    if (n == 5) {
+      int number = users_file.position() + 1;
+      users_file.close();
+      return number;
+    }
+    if ( c == String((Card_ID))[n]) {
+      if ( users_file.peek() == String((Card_ID))[n + 1]) {
+        n++;
       }
+      else {
+        n = 0;
+      }
+    }
+  }
+  users_file.close(); // CLOSE FILE
+  scanned = false;
+  
+  //  Serial.println("DASDAFHSFHDFJFGNSDJFSD");
+
+  
+
+}
+
+void printCredits(int index) { //Also does LCD print of username and credit values using string buffers
+  String user;
+  String credits;
+  int newPos;
+  users_file = SD.open("Users.csv"); // OPEN FILE
+  if (!users_file)
+  {
+    Serial.println("Users file was not able to be opened");
+  }
+  int n = 0; // to put in all chars into char array
+  //        char data[users_file.size()];
+  char c;
+  while (users_file.available()) //file read for USERNAME
+  {
+    users_file.seek(index);
+    while ( c != ',')
+    {
+      c = users_file.read();
+      if (c == ',' ) {
+        break;
+      }
+      user += c;
+      n++;
+    }
+    c = users_file.read();
+    nextPointer = users_file.position();
+    break;
+  }
+  while (users_file.available()) //file read for CREDITS
+  {
+    while ( c != ',')
+    {
+      credits += c;
+      c = users_file.read();
+      n++;
+    }
+    break;
+  }
+  Serial.print("User: ");
+  Serial.println(user);
+  Serial.print("Credits: ");
+  Serial.println(credits);
+  lcd.setCursor(0, 0);
+  lcd.print(user);
+  lcd.setCursor(0, 1);
+  lcd.print(credits);
+  userCredits = credits.toInt();
+  users_file.close();
+}
 
 
-      
 
-
+void lowerCredits(int index) {
+  users_file = SD.open("Users.csv", FILE_WRITE); // OPEN FILE as write
+  if (!users_file)
+  {
+    Serial.println("Users file was not able to be opened");
+  }
+  while (1) //file read for USERNAME
+  {
+    users_file.seek(index - 1);
+    char buf[2]; // temp location for decemented credit value
+    String((userCredits - 1)).toCharArray(buf, 3); //filling buffer
+    Serial.print("BUF: ");
+    Serial.println(buf);
+    users_file.write(buf, 2);
+    lcd.setCursor(0, 1);
+    lcd.print(buf);
+//    active = false;
+    break;
+  }
+  users_file.close();
+}
