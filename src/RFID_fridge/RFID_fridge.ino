@@ -124,12 +124,15 @@ void loop()
 
     lcd.setCursor(0, 1);
     int IDpointer = findID(Card_ID);
-    if (IDpointer > 0 ){
+    Serial.print("IDP: ");
+    Serial.println(IDpointer);
+    if (IDpointer > 0 ) {
       printCredits(IDpointer);
     }
     else {
       Serial.println("NO USER");
-      }
+      active = false;
+    }
     //    Serial.println(nextPointer);
     //    lcd.print(getCredits(Card_ID));
 
@@ -157,7 +160,13 @@ void loop()
         }
       case btnUP:
         {
-          lcd.print("UP    ");
+          while (dispense > 0) { //because button press results in many calls
+            pay = true;
+            Serial.println("UP");
+            raiseCredits(nextPointer); // Needs check for administrator
+            dispense--;
+            active = false;
+          }
           break;
         }
       case btnDOWN:
@@ -165,18 +174,18 @@ void loop()
 
           //      lcd.print("DOWN  ");
           while (dispense > 0) { //because button press results in many calls
-            if (userCredits == 0){
+            if (userCredits == 0) {
               Serial.println("NO CREDITS");
               lcd.print("NO CREDITS");
               dispense--;
-              active = false;  
+              active = false;
               break;
-              }
+            }
             pay = true;
             Serial.println("DOWN");
-            lowerCredits(nextPointer);  
+            lowerCredits(nextPointer);
             dispense--;
-            active=false;
+            active = false;
           }
           //              transaction = false;
           break;
@@ -202,7 +211,7 @@ int findID (long Card_ID) {
   {
     Serial.println("Users file was not able to be opened");
   }
-  int n = 0; // to put in all chars into char array
+  int n = 0; // to count number of consecutive character matches
   //        char data[users_file.size()];
   char c;
   while (users_file.available()) //file read
@@ -224,10 +233,10 @@ int findID (long Card_ID) {
   }
   users_file.close(); // CLOSE FILE
   scanned = false;
-  
+  return -1;
   //  Serial.println("DASDAFHSFHDFJFGNSDJFSD");
 
-  
+
 
 }
 
@@ -299,7 +308,29 @@ void lowerCredits(int index) {
     users_file.write(buf, 2);
     lcd.setCursor(0, 1);
     lcd.print(buf);
-//    active = false;
+    //    active = false;
+    break;
+  }
+  users_file.close();
+}
+
+void raiseCredits(int index) {
+  users_file = SD.open("Users.csv", FILE_WRITE); // OPEN FILE as write
+  if (!users_file)
+  {
+    Serial.println("Users file was not able to be opened");
+  }
+  while (1) //file read for USERNAME
+  {
+    users_file.seek(index - 1);
+    char buf[2]; // temp location for decemented credit value
+    String((userCredits + 1)).toCharArray(buf, 3); //filling buffer
+    Serial.print("BUF: ");
+    Serial.println(buf);
+    users_file.write(buf, 2);
+    lcd.setCursor(0, 1);
+    lcd.print(buf);
+    //    active = false;
     break;
   }
   users_file.close();
