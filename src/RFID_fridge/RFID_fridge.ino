@@ -264,8 +264,8 @@ void printCredits(int index) { //Also does LCD print of username and credit valu
       user += c;
       n++;
     }
-    c = users_file.read();
-    nextPointer = users_file.position();
+    c = users_file.read(); //skip over comma
+    nextPointer = users_file.position(); // position of credits saved to global variable
     break;
   }
   while (users_file.available()) //file read for CREDITS
@@ -282,11 +282,15 @@ void printCredits(int index) { //Also does LCD print of username and credit valu
   Serial.println(user);
   Serial.print("Credits: ");
   Serial.println(credits);
+  lcd.setCursor(0, 0); // print to display
+  lcd.print("        "); //first clear
   lcd.setCursor(0, 0);
   lcd.print(user);
   lcd.setCursor(0, 1);
+  lcd.print("        "); // eliminates rouge characters on lcd
+  lcd.setCursor(0, 1);
   lcd.print(credits);
-  userCredits = credits.toInt();
+  userCredits = credits.toInt(); // save to global variable as int
   users_file.close();
 }
 
@@ -301,11 +305,20 @@ void lowerCredits(int index) {
   while (1) //file read for USERNAME
   {
     users_file.seek(index - 1);
-    char buf[2]; // temp location for decemented credit value
-    String((userCredits - 1)).toCharArray(buf, 3); //filling buffer
+    char buf[4]; // temp location for decemented credit value
+    String((userCredits - 1)).toCharArray(buf, 4); //filling buffer with decremented value
     Serial.print("BUF: ");
     Serial.println(buf);
-    users_file.write(buf, 2);
+    Serial.print("sizeof: ");
+    int buflen = (String(userCredits)).length();
+    Serial.println( buflen   );
+    if (buflen == 1){
+      buflen = 2; 
+      Serial.println("BUFLEN CHANGE");
+      }
+    users_file.write(buf, buflen ); // stable at 2, check 3
+    lcd.setCursor(0, 1);
+    lcd.print("        ");    
     lcd.setCursor(0, 1);
     lcd.print(buf);
     //    active = false;
@@ -323,11 +336,18 @@ void raiseCredits(int index) {
   while (1) //file read for USERNAME
   {
     users_file.seek(index - 1);
-    char buf[2]; // temp location for decemented credit value
-    String((userCredits + 1)).toCharArray(buf, 3); //filling buffer
+    char buf[4]; // temp location for decemented credit value
+    String((userCredits + 1)).toCharArray(buf, 4); //filling buffer
     Serial.print("BUF: ");
     Serial.println(buf);
-    users_file.write(buf, 2);
+    Serial.print("sizeof: ");
+    int buflen = (String(userCredits)).length();
+    Serial.println( buflen   );
+    if (buflen == 1){
+      buflen = 2;
+      Serial.println("BUFLEN CHANGE"); 
+      }
+    users_file.write(buf, 2 ); // stable at 2, check 3
     lcd.setCursor(0, 1);
     lcd.print(buf);
     //    active = false;
