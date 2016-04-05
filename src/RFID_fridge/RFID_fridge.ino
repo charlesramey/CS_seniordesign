@@ -91,7 +91,9 @@ void setup()
 
   lcd.begin(16, 2);
   lcd.setCursor(0, 0);
-  lcd.print("Testing");
+  lcd.print("||SodaBot v1.0||");
+  lcd.setCursor(0, 1);
+  lcd.print("Tap ur BuzzCard");
 }
 
 
@@ -113,7 +115,7 @@ void loop()
     lcd.print("                "); // clear lcd
     lcd.setCursor(0, 1);
     lcd.print("                ");
-    active = true;
+    active = true; // entrance to second loop
     scanned = true;
     dispense = 1;
     Card_ID = reader.getCardCode();
@@ -124,8 +126,6 @@ void loop()
 
     lcd.setCursor(0, 1);
     int IDpointer = findID(Card_ID);
-    Serial.print("IDP: ");
-    Serial.println(IDpointer);
     if (IDpointer > 0 ) {
       printCredits(IDpointer);
     }
@@ -281,15 +281,18 @@ void printCredits(int index) { //Also does LCD print of username and credit valu
   Serial.print("User: ");
   Serial.println(user);
   Serial.print("Credits: ");
-  Serial.println(credits);
+  Serial.println(credits.toInt());
   lcd.setCursor(0, 0); // print to display
   lcd.print("        "); //first clear
   lcd.setCursor(0, 0);
-  lcd.print(user);
+  lcd.print("Hello ");
+  lcd.println(user + "!    ");
   lcd.setCursor(0, 1);
-  lcd.print("        "); // eliminates rouge characters on lcd
+  lcd.print("        "); // eliminates rouge characters on lcd "artifacts"
   lcd.setCursor(0, 1);
-  lcd.print(credits);
+  lcd.print("Credits: ");
+  lcd.print(credits.toInt());
+  lcd.println("     "); // removing artifacts on lcd
   userCredits = credits.toInt(); // save to global variable as int
   users_file.close();
 }
@@ -307,11 +310,7 @@ void lowerCredits(int index) {
     users_file.seek(index - 1);
     char buf[4]; // temp location for decemented credit value
     String((userCredits - 1)).toCharArray(buf, 4); //filling buffer with decremented value
-    Serial.print("BUF: ");
-    Serial.println(buf);
-    Serial.print("sizeof: ");
     int buflen = (String(userCredits)).length();
-    Serial.println( buflen   );
     if (buflen == 1){
       buflen = 2; 
       Serial.println("BUFLEN CHANGE");
@@ -320,7 +319,14 @@ void lowerCredits(int index) {
     lcd.setCursor(0, 1);
     lcd.print("        ");    
     lcd.setCursor(0, 1);
+    lcd.print("Credits: ");
     lcd.print(buf);
+    lcd.print("   "); // erase artifacts
+    delay(1400); //DELAY
+    lcd.setCursor(0, 0);
+    lcd.print("Thank You!      ");
+    delay(1400); // second delay
+    
     //    active = false;
     break;
   }
