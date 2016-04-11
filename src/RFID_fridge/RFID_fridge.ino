@@ -8,7 +8,7 @@
     MOSI -> Pin 11
     MISO -> Pin 12
     CLK -> Pin 13
-    CS -> 8
+    CS -> 8 -> 14
 */
 
 //Requisite SD card variables
@@ -21,7 +21,7 @@ File users_file;
 int lastCardID = -1;
 
 //Define which pin is used for SD card chip select
-const int chip_select = 8;
+const int chip_select = 14;
 
 //Define where the RFID reader is plugged in
 const int clock_pin = 3;
@@ -311,13 +311,13 @@ void lowerCredits(int index) {
     char buf[4]; // temp location for decemented credit value
     String((userCredits - 1)).toCharArray(buf, 4); //filling buffer with decremented value
     int buflen = (String(userCredits)).length();
-    if (buflen == 1){
-      buflen = 2; 
+    if (buflen == 1) {
+      buflen = 2;
       Serial.println("BUFLEN CHANGE");
-      }
+    }
     users_file.write(buf, buflen ); // stable at 2, check 3
     lcd.setCursor(0, 1);
-    lcd.print("        ");    
+    lcd.print("        ");
     lcd.setCursor(0, 1);
     lcd.print("Credits: ");
     lcd.print(buf);
@@ -326,11 +326,17 @@ void lowerCredits(int index) {
     lcd.setCursor(0, 0);
     lcd.print("Thank You!      ");
     delay(1400); // second delay
-    
+
     //    active = false;
     break;
   }
   users_file.close();
+  // REPRINT TO MAIN SPLASH SCREEN
+  lcd.setCursor(0, 0);
+  lcd.print("||SodaBot v1.0||");
+  lcd.setCursor(0, 1);
+  lcd.print("Tap ur BuzzCard");
+  delay(1000); // delay again
 }
 
 void raiseCredits(int index) {
@@ -349,10 +355,10 @@ void raiseCredits(int index) {
     Serial.print("sizeof: ");
     int buflen = (String(userCredits)).length();
     Serial.println( buflen   );
-    if (buflen == 1){
+    if (buflen == 1) {
       buflen = 2;
-      Serial.println("BUFLEN CHANGE"); 
-      }
+      Serial.println("BUFLEN CHANGE");
+    }
     users_file.write(buf, 2 ); // stable at 2, check 3
     lcd.setCursor(0, 1);
     lcd.print(buf);
@@ -361,3 +367,6 @@ void raiseCredits(int index) {
   }
   users_file.close();
 }
+
+// create methods for each individual dispensing case. 1, 2, or 3. 
+
