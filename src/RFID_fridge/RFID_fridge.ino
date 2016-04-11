@@ -143,6 +143,8 @@ void loop()
 
 
   while (active) {
+    detachInterrupt(2); // DISABLE SCANNER WHILE ACTIVE.
+    detachInterrupt(3); //
     lcd_key = read_LCD_buttons(); // read buttons
     lcd.setCursor(0, 1);
     switch (lcd_key)               // depending on which button was pushed, we perform an action
@@ -201,6 +203,8 @@ void loop()
           break;
         }
     }
+  reader.begin();       // RE-ENABLE SCANNER
+  reader.attach(0, 1);
   }
 }
 
