@@ -3,6 +3,7 @@
 #include <LiquidCrystal.h>
 #include <stdio.h>
 #include <string.h>
+#include <Servo.h>
 
 /* SD Card Hook Up Guide
     MOSI -> Pin 11
@@ -10,6 +11,9 @@
     CLK -> Pin 13
     CS -> 8 -> 14
 */
+
+//Define servos
+Servo servo1;
 
 //Requisite SD card variables
 Sd2Card card;
@@ -67,6 +71,12 @@ int read_LCD_buttons()
 
 void setup()
 {
+  //servo setup
+  servo1.attach(46); //PIN 46 for first servo
+  int pos1 = 100; //degree lim of dispenser
+  servo1.write(4);
+//  servo1.detach();
+  //
   Serial.begin(9600);
   reader.begin();
   // Attach the 0-bit Wiegand signal to Arduino's Interrupt 0 (Pin 2 for UNO)
@@ -185,9 +195,10 @@ void loop()
             }
             pay = true;
             Serial.println("DOWN");
-            lowerCredits(nextPointer);
+            lowerCredits(nextPointer); //dispenseCan() is used in lowerCredits()
             dispense--;
             active = false;
+//            dispenseCan(servo1);
           }
           //              transaction = false;
           break;
@@ -203,8 +214,8 @@ void loop()
           break;
         }
     }
-  reader.begin();       // RE-ENABLE SCANNER
-  reader.attach(0, 1);
+    reader.begin();       // RE-ENABLE SCANNER
+    reader.attach(0, 1);
   }
 }
 
@@ -329,6 +340,9 @@ void lowerCredits(int index) {
     delay(1400); //DELAY
     lcd.setCursor(0, 0);
     lcd.print("Thank You!      ");
+    // if servo 1 then do correct attach
+    servo1.attach(46);
+    dispenseCan(servo1); // DISPENSEEEE
     delay(1400); // second delay
 
     //    active = false;
@@ -372,5 +386,20 @@ void raiseCredits(int index) {
   users_file.close();
 }
 
-// create methods for each individual dispensing case. 1, 2, or 3. 
+// create methods for each individual dispensing case. 1, 2, or 3.
+
+void dispenseCan(Servo myservo) { //attach servo before!
+  int pos = 100;
+  for (pos = 0; pos <= 100; pos += 1) { // goes from 0 degrees to 180 degrees
+    // in steps of 1 degree
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(30);                       // waits 15ms for the servo to reach the position
+  }
+  delay(200); // wait while dispenser is at lowest point 
+  for (pos = 100; pos >= 5; pos -= 1) { // goes from 180 degrees to 0 degrees
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(15);                       // waits 15ms for the servo to reach the position
+  }
+//  myservo.detach();
+}
 
