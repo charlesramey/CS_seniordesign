@@ -13,7 +13,7 @@
 */
 
 //PINS USED:
-//RFID: 2, 3 LCD: 4, 5, 6, 7, 8, 9, 13 SD CARD: 14 SERVOS: 46 BUTTONS: 
+//RFID: 2, 3 LCD: 4, 5, 6, 7, 8, 9, 13 SD CARD: 14 SERVOS: 44, 45, 46 BUTTONS: 23, 25, 27
 
 //Define servos
 Servo servo1;
@@ -21,9 +21,9 @@ Servo servo2;
 Servo servo3;
 
 //Define Servo Pins
-const int servo1_pin = 46;
-const int servo2_pin = 0;
-const int servo3_pin = 0;//#######################################TODO GET PINS FOR SECOND AND THIRD SERVOS
+const int servo1_pin = 44;
+const int servo2_pin = 45;
+const int servo3_pin = 46;//#######################################TODO GET PINS FOR SECOND AND THIRD SERVOS
 
 //Requisite SD card variables
 Sd2Card card;
@@ -42,9 +42,9 @@ const int clock_pin = 3;
 const int data_pin = 2;
 
 //Define where the Buttons are plugged in
-const int button1_pin = 0;
-const int button2_pin = 0;
-const int button3_pin = 0;//#####################################TODO: INSERT PINS FOR ALL THREE BUTTONS
+const int button1_pin = 47;
+const int button2_pin = 48;
+const int button3_pin = 49;//#####################################TODO: INSERT PINS FOR ALL THREE BUTTONS
 
 //Changing Button States
 int button1State = 0;
@@ -113,9 +113,9 @@ void setup()
   
   //Set the chip_select pin to output fo SD reader
   pinMode(chip_select, OUTPUT);
-  pinMode(button1_pin, INPUT);
-  pinMode(button2_pin, INPUT);
-  pinMode(button3_pin, INPUT);
+  pinMode(button1_pin, INPUT_PULLUP);
+  pinMode(button2_pin, INPUT_PULLUP);
+  pinMode(button3_pin, INPUT_PULLUP);
 
   //Try to initialize the SD Card
   if (!SD.begin(chip_select))
@@ -185,7 +185,8 @@ void loop()
     lcd.setCursor(0, 1);
 
 //BUTTON DEBAUCHERY
-    if(button1State == HIGH){
+    if(button1State == LOW){
+      Serial.println("button1 press");
       //dispense from dispenser #1
       servo1.attach(servo1_pin);
       //IF USER HAS 0 CREDITS
@@ -205,7 +206,7 @@ void loop()
         break;
       }
     }
-    if(button2State == HIGH){
+    if(button2State == LOW){
       //dispense from dispenser #2
       servo2.attach(servo2_pin);
       
@@ -226,7 +227,7 @@ void loop()
         break;
       }
     }
-    if(button3State == HIGH){
+    if(button3State == LOW){
       //dispense from dispenser #3
       servo3.attach(servo3_pin);
       
