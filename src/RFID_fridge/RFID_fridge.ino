@@ -199,6 +199,7 @@ void loop()
       while(dispense > 0){
         dispenseCan(servo1);
         Serial.println("DISPENSE 1");
+        lowerCredits(nextPointer);
         dispense--;
         active = false;
         break;
@@ -219,6 +220,7 @@ void loop()
       while(dispense > 0){
         dispenseCan(servo2);
         Serial.println("DISPENSE 2");
+        lowerCredits(nextPointer);
         dispense--;
         active = false;
         break;
@@ -239,6 +241,7 @@ void loop()
       while(dispense > 0){
         dispenseCan(servo3);
         Serial.println("DISPENSE 3");
+        lowerCredits(nextPointer);
         dispense--;
         active = false;
         break;
