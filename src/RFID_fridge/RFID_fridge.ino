@@ -12,8 +12,18 @@
     CS -> 8 -> 14
 */
 
+//PINS USED:
+//RFID: 2, 3 LCD: 4, 5, 6, 7, 8, 9, 13 SD CARD: 14 SERVOS: 46 BUTTONS: 
+
 //Define servos
 Servo servo1;
+Servo servo2;
+Servo servo3;
+
+//Define Servo Pins
+const int servo1_pin = 46;
+const int servo2_pin = 0;
+const int servo3_pin = 0;//#######################################TODO GET PINS FOR SECOND AND THIRD SERVOS
 
 //Requisite SD card variables
 Sd2Card card;
@@ -30,6 +40,16 @@ const int chip_select = 14;
 //Define where the RFID reader is plugged in
 const int clock_pin = 3;
 const int data_pin = 2;
+
+//Define where the Buttons are plugged in
+const int button1_pin = 0;
+const int button2_pin = 0;
+const int button3_pin = 0;//#####################################TODO: INSERT PINS FOR ALL THREE BUTTONS
+
+//Changing Button States
+int button1State = 0;
+int button2State = 0;
+int button3State = 0;
 
 //Card ID
 long Card_ID; //type long for long int
@@ -72,22 +92,30 @@ int read_LCD_buttons()
 void setup()
 {
   //servo setup
-  servo1.attach(46); //PIN 46 for first servo
+  servo1.attach(servo1_pin); //PIN 46 for first servo
   int pos1 = 100; //degree lim of dispenser
   servo1.write(4);
-//  servo1.detach();
-  //
+  servo2.attach(servo2_pin);
+  servo2.write(4);
+  servo3.attach(servo3_pin);
+  servo3.write(4);
+  
   Serial.begin(9600);
   reader.begin();
   // Attach the 0-bit Wiegand signal to Arduino's Interrupt 0 (Pin 2 for UNO)
   // Attach the 1-bit Wiegand signal to Arduino's Interrupt 1 (Pin 3 for UNO)
   reader.attach(0, 1);
+  
   //Inorder to make the SD card library work, pin 10 must be set as an
   //output, even though we are using pin 8 as the chip select (CS)
   pinMode(10, OUTPUT);
   digitalWrite(10, HIGH); // For the backlight to stay on!
+  
   //Set the chip_select pin to output fo SD reader
   pinMode(chip_select, OUTPUT);
+  pinMode(button1_pin, INPUT);
+  pinMode(button2_pin, INPUT);
+  pinMode(button3_pin, INPUT);
 
   //Try to initialize the SD Card
   if (!SD.begin(chip_select))
@@ -111,8 +139,6 @@ boolean readback = true; // if to read the csv again and update local array
 boolean found = false; // if card ID is found
 boolean scanned = false; // if a card has been scanned just then
 boolean active = false; // if user has scanned card and may do something
-boolean transaction = false; //if a transaction is occuring (decrement)
-boolean pay = false; // if user selects can to be dispensed
 boolean onetime = true;
 boolean anothertime = true;
 
@@ -155,65 +181,97 @@ void loop()
   while (active) {
     detachInterrupt(2); // DISABLE SCANNER WHILE ACTIVE.
     detachInterrupt(3); //
-    lcd_key = read_LCD_buttons(); // read buttons
+    //lcd_key = read_LCD_buttons(); // read buttons
     lcd.setCursor(0, 1);
-    switch (lcd_key)               // depending on which button was pushed, we perform an action
-    {
-      case btnRIGHT:
-        {
-          lcd.print("RIGHT ");
 
-          break;
-        }
-      case btnLEFT:
-        {
-          lcd.print("LEFT   ");
-          break;
-        }
-      case btnUP:
-        {
-          while (dispense > 0) { //because button press results in many calls
-            pay = true;
-            Serial.println("UP");
-            raiseCredits(nextPointer); // Needs check for administrator
-            dispense--;
-            active = false;
-          }
-          break;
-        }
-      case btnDOWN:
-        {
-
-          //      lcd.print("DOWN  ");
-          while (dispense > 0) { //because button press results in many calls
-            if (userCredits == 0) {
-              Serial.println("NO CREDITS");
-              lcd.print("NO CREDITS");
-              dispense--;
-              active = false;
-              break;
-            }
-            pay = true;
-            Serial.println("DOWN");
-            lowerCredits(nextPointer); //dispenseCan() is used in lowerCredits()
-            dispense--;
-            active = false;
-//            dispenseCan(servo1);
-          }
-          //              transaction = false;
-          break;
-        }
-      case btnSELECT:
-        {
-          lcd.print("SELECT");
-          break;
-        }
-      case btnNONE:
-        {
-          //      lcd.print("NONE  ");
-          break;
-        }
+//BUTTON DEBAUCHERY
+    if(button1State == HIGH){
+      //dispense from dispenser #1
+      servo1.attach(servo1_pin);
+      //IF USER HAS 0 CREDITS
+      if(userCredits == 0){
+        lcd.print("NO CREDITS");
+        dispense--;
+        active = false;
+        break;
+      }
+      
+      while(dispense > 0){
+        dispenseCan(servo1);
+        Serial.println("DISPENSE 1");
+        dispense--;
+        active = false;
+        break;
+      }
     }
+    if(button2State == HIGH){
+      //dispense from dispenser #2
+      servo2.attach(servo2_pin);
+      
+      //IF USER HAS 0 CREDITS
+      if(userCredits == 0){
+        lcd.print("NO CREDITS");
+        dispense--;
+        active = false;
+        break;
+      }
+      
+      while(dispense > 0){
+        dispenseCan(servo2);
+        Serial.println("DISPENSE 2");
+        dispense--;
+        active = false;
+        break;
+      }
+    }
+    if(button3State == HIGH){
+      //dispense from dispenser #3
+      servo3.attach(servo3_pin);
+      
+      //IF USER HAS 0 CREDITS
+      if(userCredits == 0){
+        lcd.print("NO CREDITS");
+        dispense--;
+        active = false;
+        break;
+      }
+      
+      while(dispense > 0){
+        dispenseCan(servo3);
+        Serial.println("DISPENSE 3");
+        dispense--;
+        active = false;
+        break;
+      }
+    }
+//          //      lcd.print("DOWN  ");
+//          while (dispense > 0) { //because button press results in many calls
+//            if (userCredits == 0) {
+//              Serial.println("NO CREDITS");
+//              lcd.print("NO CREDITS");
+//              dispense--;
+//              active = false;
+//              break;
+//            }
+//            Serial.println("DOWN");
+//            lowerCredits(nextPointer); //dispenseCan() is used in lowerCredits()
+//            dispense--;
+//            active = false;
+////            dispenseCan(servo1);
+//          }
+//          break;
+//        }
+//      case btnSELECT:
+//        {
+//          lcd.print("SELECT");
+//          break;
+//        }
+//      case btnNONE:
+//        {
+//          //      lcd.print("NONE  ");
+//          break;
+//        }
+//    }
     reader.begin();       // RE-ENABLE SCANNER
     reader.attach(0, 1);
   }
@@ -313,7 +371,6 @@ void printCredits(int index) { //Also does LCD print of username and credit valu
 }
 
 
-
 void lowerCredits(int index) {
   users_file = SD.open("Users.csv", FILE_WRITE); // OPEN FILE as write
   if (!users_file)
@@ -340,11 +397,6 @@ void lowerCredits(int index) {
     delay(1400); //DELAY
     lcd.setCursor(0, 0);
     lcd.print("Thank You!      ");
-    // if servo 1 then do correct attach
-    servo1.attach(46);
-    dispenseCan(servo1); // DISPENSEEEE
-    delay(1400); // second delay
-
     //    active = false;
     break;
   }
@@ -356,37 +408,6 @@ void lowerCredits(int index) {
   lcd.print("Tap ur BuzzCard");
   delay(1000); // delay again
 }
-
-void raiseCredits(int index) {
-  users_file = SD.open("Users.csv", FILE_WRITE); // OPEN FILE as write
-  if (!users_file)
-  {
-    Serial.println("Users file was not able to be opened");
-  }
-  while (1) //file read for USERNAME
-  {
-    users_file.seek(index - 1);
-    char buf[4]; // temp location for decemented credit value
-    String((userCredits + 1)).toCharArray(buf, 4); //filling buffer
-    Serial.print("BUF: ");
-    Serial.println(buf);
-    Serial.print("sizeof: ");
-    int buflen = (String(userCredits)).length();
-    Serial.println( buflen   );
-    if (buflen == 1) {
-      buflen = 2;
-      Serial.println("BUFLEN CHANGE");
-    }
-    users_file.write(buf, 2 ); // stable at 2, check 3
-    lcd.setCursor(0, 1);
-    lcd.print(buf);
-    //    active = false;
-    break;
-  }
-  users_file.close();
-}
-
-// create methods for each individual dispensing case. 1, 2, or 3.
 
 void dispenseCan(Servo myservo) { //attach servo before!
   int pos = 100;
