@@ -13,7 +13,7 @@
 */
 
 //PINS USED:
-//RFID: 2, 3 LCD: 4, 5, 6, 7, 8, 9, 13 SD CARD: 14 SERVOS: 44, 45, 46 BUTTONS: 23, 25, 27
+//RFID: 2, 3 LCD: 4, 5, 6, 7, 8, 9, 13 SD CARD: 14 SERVOS: 44, 45, 46 BUTTONS: 41, 40, 47
 
 //Define servos
 Servo servo1;
@@ -23,7 +23,7 @@ Servo servo3;
 //Define Servo Pins
 const int servo1_pin = 44;
 const int servo2_pin = 45;
-const int servo3_pin = 46;//#######################################TODO GET PINS FOR SECOND AND THIRD SERVOS
+const int servo3_pin = 46;
 
 //Requisite SD card variables
 Sd2Card card;
@@ -42,9 +42,9 @@ const int clock_pin = 3;
 const int data_pin = 2;
 
 //Define where the Buttons are plugged in
-const int button1_pin = 47;
-const int button2_pin = 48;
-const int button3_pin = 49;//#####################################TODO: INSERT PINS FOR ALL THREE BUTTONS
+const int button1_pin = 41;
+const int button2_pin = 40;
+const int button3_pin = 47;
 
 //Changing Button States
 int button1State = 0;
@@ -99,18 +99,18 @@ void setup()
   servo2.write(4);
   servo3.attach(servo3_pin);
   servo3.write(4);
-  
+
   Serial.begin(9600);
   reader.begin();
   // Attach the 0-bit Wiegand signal to Arduino's Interrupt 0 (Pin 2 for UNO)
   // Attach the 1-bit Wiegand signal to Arduino's Interrupt 1 (Pin 3 for UNO)
   reader.attach(0, 1);
-  
+
   //Inorder to make the SD card library work, pin 10 must be set as an
   //output, even though we are using pin 8 as the chip select (CS)
   pinMode(10, OUTPUT);
   digitalWrite(10, HIGH); // For the backlight to stay on!
-  
+
   //Set the chip_select pin to output fo SD reader
   pinMode(chip_select, OUTPUT);
   pinMode(button1_pin, INPUT_PULLUP);
@@ -155,10 +155,10 @@ void loop()
     scanned = true;
     dispense = 1;
     Card_ID = reader.getCardCode();
-    Serial.print(" Facility Code = ");
-    Serial.print(reader.getFacilityCode(), DEC);
-    Serial.print(", Card Code = ");
-    Serial.println(Card_ID, DEC);
+    //    Serial.print(" Facility Code = ");
+    //    Serial.print(reader.getFacilityCode(), DEC);
+    //    Serial.print(", Card Code = ");
+    //    Serial.println(Card_ID, DEC);
 
     lcd.setCursor(0, 1);
     int IDpointer = findID(Card_ID);
@@ -166,7 +166,13 @@ void loop()
       printCredits(IDpointer);
     }
     else {
-      Serial.println("NO USER");
+      lcd.setCursor(0, 1);
+      lcd.print("NO USER");
+      delay(1000);
+      lcd.setCursor(0, 0);
+      lcd.print("||SodaBot v1.0||");
+      lcd.setCursor(0, 1);
+      lcd.print("Tap ur BuzzCard");
       active = false;
     }
     //    Serial.println(nextPointer);
@@ -179,103 +185,76 @@ void loop()
 
 
   while (active) {
+
+    button1State = digitalRead(button1_pin); //read button state
+    button2State = digitalRead(button2_pin);
+    button3State = digitalRead(button3_pin);
+
     detachInterrupt(2); // DISABLE SCANNER WHILE ACTIVE.
     detachInterrupt(3); //
     //lcd_key = read_LCD_buttons(); // read buttons
     lcd.setCursor(0, 1);
 
-//BUTTON DEBAUCHERY
-    if(button1State == LOW){
-      Serial.println("button1 press");
+    //BUTTON DEBAUCHERY
+    if (button1State == LOW) {
       //dispense from dispenser #1
       servo1.attach(servo1_pin);
       //IF USER HAS 0 CREDITS
-      if(userCredits == 0){
+      if (userCredits == 0) {
         lcd.print("NO CREDITS");
         dispense--;
         active = false;
         break;
       }
-      
-      while(dispense > 0){
-        dispenseCan(servo1);
-        Serial.println("DISPENSE 1");
+
+      while (dispense > 0) {
+        dispenseCan(servo1, 20, 120); // rotate from 40 to 160
         lowerCredits(nextPointer);
         dispense--;
         active = false;
         break;
       }
     }
-    if(button2State == LOW){
+    if (button2State == LOW) {
       //dispense from dispenser #2
       servo2.attach(servo2_pin);
-      
+
       //IF USER HAS 0 CREDITS
-      if(userCredits == 0){
+      if (userCredits == 0) {
         lcd.print("NO CREDITS");
         dispense--;
         active = false;
         break;
       }
-      
-      while(dispense > 0){
-        dispenseCan(servo2);
-        Serial.println("DISPENSE 2");
+
+      while (dispense > 0) {
+        dispenseCan(servo2, 20, 120); // rotate from a to b
         lowerCredits(nextPointer);
         dispense--;
         active = false;
         break;
       }
     }
-    if(button3State == LOW){
+    if (button3State == LOW) {
       //dispense from dispenser #3
       servo3.attach(servo3_pin);
-      
+
       //IF USER HAS 0 CREDITS
-      if(userCredits == 0){
+      if (userCredits == 0) {
         lcd.print("NO CREDITS");
         dispense--;
         active = false;
         break;
       }
-      
-      while(dispense > 0){
-        dispenseCan(servo3);
-        Serial.println("DISPENSE 3");
+
+      while (dispense > 0) {
+        dispenseCan(servo3, 20, 130);  // rotate from a to b
         lowerCredits(nextPointer);
         dispense--;
         active = false;
         break;
       }
     }
-//          //      lcd.print("DOWN  ");
-//          while (dispense > 0) { //because button press results in many calls
-//            if (userCredits == 0) {
-//              Serial.println("NO CREDITS");
-//              lcd.print("NO CREDITS");
-//              dispense--;
-//              active = false;
-//              break;
-//            }
-//            Serial.println("DOWN");
-//            lowerCredits(nextPointer); //dispenseCan() is used in lowerCredits()
-//            dispense--;
-//            active = false;
-////            dispenseCan(servo1);
-//          }
-//          break;
-//        }
-//      case btnSELECT:
-//        {
-//          lcd.print("SELECT");
-//          break;
-//        }
-//      case btnNONE:
-//        {
-//          //      lcd.print("NONE  ");
-//          break;
-//        }
-//    }
     reader.begin();       // RE-ENABLE SCANNER
     reader.attach(0, 1);
   }
@@ -311,9 +290,6 @@ int findID (long Card_ID) {
   users_file.close(); // CLOSE FILE
   scanned = false;
   return -1;
-  //  Serial.println("DASDAFHSFHDFJFGNSDJFSD");
-
-
 
 }
 
@@ -355,10 +331,10 @@ void printCredits(int index) { //Also does LCD print of username and credit valu
     }
     break;
   }
-  Serial.print("User: ");
-  Serial.println(user);
-  Serial.print("Credits: ");
-  Serial.println(credits.toInt());
+  //  Serial.print("User: ");
+  //  Serial.println(user);
+  //  Serial.print("Credits: ");
+  //  Serial.println(credits.toInt());
   lcd.setCursor(0, 0); // print to display
   lcd.print("        "); //first clear
   lcd.setCursor(0, 0);
@@ -389,7 +365,6 @@ void lowerCredits(int index) {
     int buflen = (String(userCredits)).length();
     if (buflen == 1) {
       buflen = 2;
-      Serial.println("BUFLEN CHANGE");
     }
     users_file.write(buf, buflen ); // stable at 2, check 3
     lcd.setCursor(0, 1);
@@ -413,18 +388,18 @@ void lowerCredits(int index) {
   delay(1000); // delay again
 }
 
-void dispenseCan(Servo myservo) { //attach servo before!
+void dispenseCan(Servo myservo, int a, int b) { //attach servo before! //from a to be rotation
   int pos = 100;
-  for (pos = 0; pos <= 100; pos += 1) { // goes from 0 degrees to 180 degrees
+  for (pos = a; pos <= b; pos += 1) { // goes from 0 degrees to 180 degrees
     // in steps of 1 degree
-    myservo.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(30);                       // waits 15ms for the servo to reach the position
-  }
-  delay(200); // wait while dispenser is at lowest point 
-  for (pos = 100; pos >= 5; pos -= 1) { // goes from 180 degrees to 0 degrees
     myservo.write(pos);              // tell servo to go to position in variable 'pos'
     delay(15);                       // waits 15ms for the servo to reach the position
   }
-//  myservo.detach();
+  delay(200); // wait while dispenser is at lowest point
+  for (pos = b; pos >= a; pos -= 1) { // goes from 180 degrees to 0 degrees
+    myservo.write(pos);              // tell servo to go to position in variable 'pos'
+    delay(10);                       // waits 15ms for the servo to reach the position
+  }
+  //  myservo.detach();
 }
 
